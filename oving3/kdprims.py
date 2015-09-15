@@ -8,7 +8,7 @@ from inspect import isfunction # Need this to test whether something is a functi
 def kd_reduce(func,seq):
     res = seq[0]
     for item in seq[1:]:
-        res = func(res,item)
+        res = func(res, item)
     return res
 
 # Returns n versions of either a number or string, or the result of calling the same function n times.
@@ -41,7 +41,7 @@ def lowercase_chars_from_file(fid):
 
 # Loads in all lines of a file
 def load_file_lines(fid):
-    return [line.rstrip() for line in open(fid, 'r').readlines()]
+    return [line for line in open(fid, 'r').readlines()]
     # rstrip strips the newline character.
 
 def string_explode(s):
