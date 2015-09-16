@@ -220,7 +220,7 @@ def lz_test(msg='00000000000000000000', filepath=False):
 
 
 def main():
-    lz_test(msg='0'*100000)
+    lz_test(msg='0'*1000000)
 
 
 if __name__ == '__main__':
