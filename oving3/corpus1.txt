@@ -176,4 +176,4 @@ hid them and showed the Japanese only plaster casts, carefully colored so
 that they would look like the fossils themselves.
 
 The corpus also needs to include numbers, so 0,1,2,3,4,5,6,7,8,9 and maybe a $ sign along
-with a few more symbols: &%$#@*
+with a few more symbols: &%$#@*;.:
