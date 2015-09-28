@@ -220,7 +220,8 @@ def lz_test(msg='00000000000000000000', filepath=False):
 
 
 def main():
-    lz_test(msg='0'*1000000)
+    #huff_test('sample3.txt', lz_flag=True)
+    lz_test(filepath='tumbler_bit.txt')
 
 
 if __name__ == '__main__':
