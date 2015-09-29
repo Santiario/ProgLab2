@@ -45,7 +45,8 @@ class Word:
         return self.string
 
     def __repr__(self):
-        return self.string + '. Appeared: ' + str(self.appeared) + '. Popularity:' + str(self.popularity) + '\n'
+        return self.string + '. Appeared: ' + str(self.appeared) + '. Popularity:' + str(self.popularity) + \
+               '. InfoValue: ' + str(self.information_value) + '\n'
 
     def __eq__(self, other):
         if self.string == other.string:
@@ -57,7 +58,7 @@ class Word:
         return self
 
     def __lt__(self, other):
-        return self.popularity < other.popularity
+        return self.information_value < other.information_value
 
     def calculate_popularity(self, number_of_files):
         self.popularity = self.appeared/number_of_files
@@ -80,6 +81,12 @@ class Dictionary:
     def items(self):
         return self.words.items()
 
+    def get_appeared(self, word):
+        if word in self.words.keys():
+            return self.words[word].appeared
+        else:
+            return 0
+
     @staticmethod
     def remove_nonalphanumeric(string):
         result = ''
@@ -99,14 +106,9 @@ class Dictionary:
 
 
     def make_word_scores(self, pos_filepaths, neg_filepaths, stop_words, percentage, n_gram):
-        pos_ordbok = self.make_dict(pos_filepaths, n_gram)
-        neg_ordbok = self.make_dict(neg_filepaths, n_gram)
-        self.remove_words(stop_words)
-        self.remove_words(stop_words)
+
         # Pruning
         self.prune(pos_ordbok, neg_ordbok, len(pos_filepaths) + len(neg_filepaths), percentage)
-
-        return sorted(pos_ordbok.items(), key=operator.itemgetter(1), reverse=True), sorted(neg_ordbok.items(), key=operator.itemgetter(1), reverse=True)
 
 
     def make_words_from_filepaths(self, filepaths):
@@ -197,6 +199,12 @@ if __name__ == '__main__':
     positive_words.remove_words(stop_words)
     negative_words.remove_words(stop_words)
 
+    for word in positive_words.values():
+        total_appeared = positive_words.get_appeared(word.string) + negative_words.get_appeared(word.string)
+        word.information_value = word.appeared / total_appeared
+    for word in negative_words.values():
+        total_appeared = positive_words.get_appeared(word.string) + negative_words.get_appeared(word.string)
+        word.information_value = word.appeared / total_appeared
 
     print(sorted(positive_words.items(), key=operator.itemgetter(1)))
     print(sorted(negative_words.items(), key=operator.itemgetter(1)))
