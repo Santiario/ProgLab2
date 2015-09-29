@@ -116,13 +116,16 @@ class Dictionary:
         for filepath in filepaths:
             word_list = self.remove_nonalphanumeric(FileHandler.read_file(filepath)).split()
             for n in range(1, n_grams + 1):
+                word_set = set()
                 index = 0
                 while index <= len(word_list) - n:
                     word = ' '.join(word_list[index:index + n])
-                    if word in self.words.keys():
-                        self.words[word].appeared += 1
-                    else:
-                        self.words[word] = Word(word)
+                    if word not in word_set:
+                        word_set.add(word)
+                        if word in self.words.keys():
+                            self.words[word].appeared += 1
+                        else:
+                            self.words[word] = Word(word)
                     index += 1
 
 
@@ -140,6 +143,7 @@ class DataSet:
         self.negative_words = Dictionary()
         self.positive_filepaths = positive_filepaths
         self.negative_filepaths = negative_filepaths
+        self.number_of_reviews = len(positive_filepaths) + len(negative_filepaths)
 
     def remove_words(self, word_list):
         self.negative_words.remove_words(word_list)
@@ -148,6 +152,26 @@ class DataSet:
     def make_words_from_filepaths(self, n_grams=1):
         self.positive_words.make_words_from_filepaths(self.positive_filepaths, n_grams)
         self.negative_words.make_words_from_filepaths(self.negative_filepaths, n_grams)
+
+    def calculate_popularity(self):
+        for word in self.positive_words.values():
+            word.calculate_popularity(len(self.positive_filepaths))
+        for word in self.negative_words.values():
+            word.calculate_popularity(len(self.negative_filepaths))
+
+    def calculate_info_value(self):
+        word_set = set()
+        word_set.update(self.positive_words.get_words_as_strings())
+        word_set.update(self.negative_words.get_words_as_strings())
+        for word in word_set:
+            total_appeared = self.positive_words.get_appeared(word) + self.negative_words.get_appeared(word)
+            self.positive_words.set_info_value(word, total_appeared)
+            self.negative_words.set_info_value(word, total_appeared)
+
+    def prune(self, percentage):
+        self.positive_words.prune(self.number_of_reviews, percentage)
+        self.negative_words.prune(self.number_of_reviews, percentage)
+
 
 if __name__ == '__main__':
     f = FileHandler()
@@ -162,10 +186,14 @@ if __name__ == '__main__':
     negative_filepaths = f.make_filepath_list('./data/subset/train/neg/')
 
     data = DataSet(positive_filepaths, negative_filepaths)
+    data.make_words_from_filepaths()
+    data.calculate_popularity()
+    data.remove_words(stop_words)
+    data.calculate_info_value()
+    data.prune(1)
 
-
-    positive_words.make_words_from_filepaths(positive_filepaths, 2)
-    negative_words.make_words_from_filepaths(negative_filepaths, 2)
+    positive_words.make_words_from_filepaths(positive_filepaths)
+    negative_words.make_words_from_filepaths(negative_filepaths)
 
     for word in positive_words.values():
         word.calculate_popularity(len(positive_filepaths))
@@ -187,8 +215,8 @@ if __name__ == '__main__':
     positive_words.prune(total_files, 1)
     negative_words.prune(total_files, 1)
 
-    print(sorted(positive_words.values()))
+    print(sorted(data.positive_words.values()))
     print('-----------------------------------------------------------------------------------------------------------------')
-    print(sorted(negative_words.values()))
+    print(sorted(data.negative_words.values()))
 
 
