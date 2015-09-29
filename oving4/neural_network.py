@@ -9,7 +9,7 @@ class FileHandler:
 
     @staticmethod
     def read_file(filepath):
-        file = open(filepath, 'r')
+        file = open(filepath, 'r', encoding="utf8")
         string = ''
         for line in file.readlines():
             string += line.strip() + ' '
@@ -172,18 +172,14 @@ class DataSet:
         self.positive_words.prune(self.number_of_reviews, percentage)
         self.negative_words.prune(self.number_of_reviews, percentage)
 
+    def evalute_review(self, filepath):
+        pass
 
 if __name__ == '__main__':
     f = FileHandler()
-
-    positive_words = Dictionary()
-    negative_words = Dictionary()
-
     stop_words = f.make_list_from_file('./data/stop_words.txt')
-
-
-    positive_filepaths = f.make_filepath_list('./data/subset/train/pos/')
-    negative_filepaths = f.make_filepath_list('./data/subset/train/neg/')
+    positive_filepaths = f.make_filepath_list('./data/alle/train/pos/')
+    negative_filepaths = f.make_filepath_list('./data/alle/train/neg/')
 
     data = DataSet(positive_filepaths, negative_filepaths)
     data.make_words_from_filepaths()
@@ -192,28 +188,6 @@ if __name__ == '__main__':
     data.calculate_info_value()
     data.prune(1)
 
-    positive_words.make_words_from_filepaths(positive_filepaths)
-    negative_words.make_words_from_filepaths(negative_filepaths)
-
-    for word in positive_words.values():
-        word.calculate_popularity(len(positive_filepaths))
-    for word in negative_words.values():
-        word.calculate_popularity(len(negative_filepaths))
-
-    positive_words.remove_words(stop_words)
-    negative_words.remove_words(stop_words)
-
-    word_set = set()
-    word_set.update(positive_words.get_words_as_strings())
-    word_set.update(negative_words.get_words_as_strings())
-    for word in word_set:
-        total_appeared = positive_words.get_appeared(word) + negative_words.get_appeared(word)
-        positive_words.set_info_value(word, total_appeared)
-        negative_words.set_info_value(word, total_appeared)
-
-    total_files = len(negative_filepaths) + len(positive_filepaths)
-    positive_words.prune(total_files, 1)
-    negative_words.prune(total_files, 1)
 
     print(sorted(data.positive_words.values()))
     print('-----------------------------------------------------------------------------------------------------------------')
