@@ -13,6 +13,7 @@ class FileHandler:
         string = ''
         for line in file.readlines():
             string += line.strip() + ' '
+        file.close()
         return string.lower()
 
     @staticmethod
@@ -39,7 +40,7 @@ class Word:
 
     def __repr__(self):
         return self.string.rjust(15) + str('  Appeared: ' + str(self.appeared)).ljust(20) + str('  Popularity:' +
-                str(self.popularity)).ljust(30) + str('  InfoValue: ' + str(self.information_value)).ljust(15)
+                str(self.popularity)).ljust(30) + str('  InfoValue: ' + str(self.information_value)).ljust(15) + '\n'
 
     def __eq__(self, other):
         if self.string == other.string:
@@ -54,7 +55,6 @@ class Word:
         return self.popularity < other.popularity
 
     def calculate_popularity(self, number_of_files):
-        #print('Word', self.string, 'appeared', self.appeared, 'times. Popularity:', self.appeared/number_of_files)
         self.popularity = self.appeared/number_of_files
 
 
@@ -85,6 +85,12 @@ class Dictionary:
     def get_popularity(self, word):
         if word in self.words.keys():
             return self.words[word].popularity
+        else:
+            return 0
+
+    def get_infovalue(self, word):
+        if word in self.words.keys():
+            return self.words[word].information_value
         else:
             return 0
 
@@ -122,20 +128,18 @@ class Dictionary:
     def make_words_from_filepaths(self, filepaths, n_grams=1):
         for filepath in filepaths:
             word_list = self.remove_nonalphanumeric(FileHandler.read_file(filepath)).split()
-            #print(word_list)
             for n in range(1, n_grams + 1):
                 word_set = set()
                 index = 0
                 while index <= len(word_list) - n:
                     word = ' '.join(word_list[index:index + n])
                     if word not in word_set:
-                        if word == 'downloading' and self.name == 'negative':
-                            print('Found downloading')
                         word_set.add(word)
                         if word in self.words.keys():
                             self.words[word].appeared += 1
                         else:
                             self.words[word] = Word(word)
+
                     index += 1
 
     def prune(self, divisor, percentage):
@@ -153,6 +157,7 @@ class DataSet:
         self.positive_filepaths = positive_filepaths
         self.negative_filepaths = negative_filepaths
         self.number_of_reviews = len(positive_filepaths) + len(negative_filepaths)
+        self.vocabulary = set()
 
     def remove_words(self, word_list):
         self.negative_words.remove_words(word_list)
@@ -182,31 +187,30 @@ class DataSet:
         self.negative_words.prune(self.number_of_reviews, percentage)
 
     def evalute_review(self, filepath):
+
         strings = Dictionary.remove_nonalphanumeric(FileHandler.read_file(filepath)).split()
-        self.remove(strings, f.make_list_from_file('./data/stop_words.txt'))
+        strings = self.remove(strings, f.make_list_from_file('./data/stop_words.txt'))
         strings = set(strings)
+
         positive_value = 0
         for string in strings:
-            popularity = self.positive_words.get_popularity(string)
-            if popularity > 0:
-                positive_value += m.log2(popularity)
-            else:
-                try:
-                    if string == 'downloading':
-                      print('Did not find word:', string, 'in positive reviews')
-                except:
-                    pass
+            if string in self.vocabulary:
+                positive_value += m.log2(self.positive_words.get_popularity(string))
+
         negative_value = 0
         for string in strings:
-            popularity = self.negative_words.get_popularity(string)
-            if popularity > 0:
-                negative_value += m.log2(popularity)
-        if positive_value > negative_value:
+            if string in self.vocabulary:
+                negative_value += m.log2(self.negative_words.get_popularity(string))
+
+        if positive_value < negative_value:
             #print('File:', filepath, '|Positive:', positive_value, '|Negative:', negative_value, '|Conclusion: NEGATIVE')
             return 'negative'
         else:
             #print('File:', filepath, '|Positive:', positive_value, '|Negative:', negative_value, '|Conclusion: POSITIVE')
             return 'positive'
+
+    def make_vocabulary(self):
+        self.vocabulary = set([x for x in self.positive_words.keys() if x in self.negative_words.keys()])
 
     @staticmethod
     def remove(list, word_list):
@@ -224,15 +228,21 @@ if __name__ == '__main__':
     data.remove_words(stop_words)
     data.prune(1)
     data.calculate_popularity()
+    data.make_vocabulary()
     #data.calculate_info_value()
 
     print("Setup completed!")
-    """most_positive = sorted(data.positive_words.values(), reverse=True)[:25]
-    most_negative = sorted(data.negative_words.values(), reverse=True)[:25]
-    print('          NEGATIVE                                                                                  POSITIVE')
-    for i in range(len(most_negative)):
-        print(most_negative[i].__repr__(), most_positive[i].__repr__())
-    """
+    print(sorted(data.positive_words.values()))
+    print('-----------------------------------------------------------------------------------------\n'
+          '------------------------------------------------------------------------------------------')
+    print(sorted(data.negative_words.values()))
+
+    for string in data.vocabulary:
+        if string not in data.positive_words.keys():
+            print(string, 'not in positive words!')
+    for string in data.vocabulary:
+        if string not in data.negative_words.keys():
+            print(string, 'not in negative words!')
 
     print('Testing negatives...')
     negatives = 0
@@ -251,8 +261,8 @@ if __name__ == '__main__':
     print('Testing positives...')
     negatives = 0
     positives = 0
-    filepaths = f.make_filepath_list('./data/subset/test/pos/')
-    for filepath in filepaths:
+    positive_filepaths = f.make_filepath_list('./data/subset/test/pos/')
+    for filepath in positive_filepaths:
         if data.evalute_review(filepath) == 'positive':
             positives += 1
         else:
