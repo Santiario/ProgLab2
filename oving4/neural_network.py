@@ -52,7 +52,7 @@ class Word:
         return self
 
     def __lt__(self, other):
-        return self.popularity < other.popularity
+        return self.information_value < other.information_value
 
     def calculate_popularity(self, number_of_files):
         self.popularity = self.appeared/number_of_files
@@ -145,7 +145,8 @@ class Dictionary:
     def prune(self, divisor, percentage):
         words = set(self.get_words_as_strings())
         for word in words:
-            if self.words[word].appeared / float(divisor) < percentage / 100.0:
+            if self.words[word].popularity < 0.02:
+                pass
                 self.remove_word(word)
 
 
@@ -224,12 +225,12 @@ if __name__ == '__main__':
     negative_filepaths = f.make_filepath_list('./data/subset/train/neg/')
 
     data = DataSet(positive_filepaths, negative_filepaths)
-    data.make_words_from_filepaths(n_grams=1)
+    data.make_words_from_filepaths(n_grams=2)
     data.remove_words(stop_words)
-    data.prune(1)
     data.calculate_popularity()
+    data.prune(5)
     data.make_vocabulary()
-    #data.calculate_info_value()
+    data.calculate_info_value()
 
     print("Setup completed!")
     print(sorted(data.positive_words.values()))
