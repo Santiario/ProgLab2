@@ -229,4 +229,13 @@ def reformat(in_fid, out_ext='jpeg', scalex=1.0, scaley=1.0):
     im = Imager(in_fid)
     im = im.scale(scalex, scaley)
     im.dump_image(base, out_ext)
-ptest1()
+
+def enhanceKeith(fid="images/robot.jpeg", file_keith="images/keith.png", new_size=250):
+    im = Image.open(fid)
+    im = im.resize((new_size, new_size))
+    keith = Image.open(file_keith)
+    keith = keith.resize((new_size//2, new_size//2))
+    im.paste(keith, (0,0), keith)
+    im.show()
+
+enhanceKeith()
