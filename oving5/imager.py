@@ -1,14 +1,17 @@
 from __future__ import print_function
+# -*- coding: iso-8859-15 -*-
 from PIL import Image
 from PIL import ImageFilter
 from PIL import ImageEnhance
+from PIL import ImageOps
+import random
 
 __author__ = 'estensen'
 
 
 class Imager:
     # TODO(All): Implement at least two imagemanipulating tools from ImageEnhance, ImageFilter, ImageDraw, ImageOps.
-    # TODO(Håvard): Add docstring to all methods.
+    # TODO(Havard): Add docstring to all methods.
     # Comments should be complete sentences.
     # Start comment with capital letter.
     # Avoid inline comments.
@@ -46,7 +49,6 @@ class Imager:
         """Save image to a file.  Only if fid has no extension is the type argument used. When writing to a JPEG
         file, use the extension jpeg, not jpg, which seems to cause some problems.
 
-        Funfact: jpeg --> på Windows fordi det bare godtok filformat på tre bokstaver.
         """
         fname = fid.split('.')
         type = fname[1] if len(fname) > 1 else type
@@ -130,6 +132,9 @@ class Imager:
 
     def paste(self, im2, x0=0, y0=0):
         self.get_image().paste(im2.get_image(), (x0, y0, x0+im2.xmax, y0+im2.ymax))
+
+    def paste_trans(self, im2, x0=0, y0=0):
+        self.get_image().paste(im2.get_image(), (x0, y0, x0+im2.xmax, y0+im2.ymax), im2.get_image())
 
     # Combining imagers in various ways.
 
@@ -230,12 +235,77 @@ def reformat(in_fid, out_ext='jpeg', scalex=1.0, scaley=1.0):
     im = im.scale(scalex, scaley)
     im.dump_image(base, out_ext)
 
+
 def enhanceKeith(fid="images/robot.jpeg", file_keith="images/keith.png", new_size=250):
+    #Main image
+    # TODO Bildet zoomes ikke inn rett mot ansiktet, da pos[0] og pos[1] ikke er riktig posisjon etter at bildet er
+    # TODO croppet
     im = Image.open(fid)
     im = im.resize((new_size, new_size))
     keith = Image.open(file_keith)
-    keith = keith.resize((new_size//2, new_size//2))
-    im.paste(keith, (0,0), keith)
-    im.show()
 
-enhanceKeith()
+    randSize = random.randint(0, new_size//2)
+    keith = keith.resize((randSize, randSize))
+
+    pos = (random.randint(0, im.size[0]*2//3), random.randint(0, im.size[1]*2//3))
+    im.paste(keith, pos, keith)
+
+
+    #Next image
+    xPos = pos[0] + randSize//2
+    yPos = pos[1] + randSize//2
+    print("Pos", xPos, yPos, "Old", pos[0], pos[1])
+    images = []
+    oldIm = im
+    nrOfImages = 3
+    for i in range(nrOfImages):
+
+        newIm = cropZoom(oldIm, new_size, (xPos, yPos), randSize)
+        images.append(newIm)
+        oldIm = newIm
+
+    im = Imager(image = im)
+    for i in range(nrOfImages):
+        im = im.concat_horiz(Imager(image=images[i]).resize(new_size, new_size))
+    im.display()
+
+def cropZoom(image, size, pos, randSize):
+    #Cropper bildet rundt en posisjon
+    cropLevel = 2
+    #im2 = ImageOps.fit(image, (size//2, size//2), method=0, bleed=0.1, centering=(pos[0]/randSize, pos[1]/randSize))
+    maxCrop = min(pos[0], pos[1], size-pos[0], size-pos[1])
+
+    im2 = image.crop((int(pos[0]-size/cropLevel), int(pos[1]-size/cropLevel),int(pos[0]+size/cropLevel), int(pos[1]+size/cropLevel)))
+    im2 = im2.resize((size, size), Image.ANTIALIAS)
+    return im2
+def add_frame(imager, rgba_frame=(51,25,0,255), frame_pixels=10):
+    frame = Imager(image=Image.new('RGBA', (imager.xmax + 2*frame_pixels,imager.ymax + 2*frame_pixels), rgba_frame))
+    frame.paste(imager, frame_pixels, frame_pixels)
+    return frame
+
+
+def make_sepia(fid, new_size=250):
+    im = Imager(fid=fid, width=new_size, height=new_size, mode='RGBA')
+    brown = Imager(image=Image.new('RGBA', (im.xmax, im.ymax), (51,25,0,155)), width=new_size, height=new_size)
+    black_and_white = Imager(image=ImageEnhance.Color(im.image).enhance(0.0), width=im.xmax, height=im.ymax, mode='RGBA')
+    black_and_white.paste_trans(brown, 0, 0)
+    return black_and_white
+
+def make_black_and_white(fid, new_size=250):
+    im = Imager(fid=fid, width=new_size, height=new_size, mode='RGBA')
+    black_and_white = Imager(image=ImageEnhance.Color(im.image).enhance(0.0), width=im.xmax, height=im.ymax, mode='RGBA')
+    return black_and_white
+
+
+im1 = add_frame(make_sepia(fid="images/northernlights.jpeg"))
+im2 = add_frame(make_black_and_white(fid="images/minions.gif"))
+im3 = Imager(image=Image.open("images/brain.jpeg").filter(ImageFilter.CONTOUR))
+im3 = add_frame(im3)
+black = Imager(width=100, height = 100)
+
+bigImage = im1.concat_vert(black)
+bigImage = bigImage.concat_vert(im2)
+bigImage = bigImage.concat_horiz(black)
+bigImage = bigImage.concat_horiz(im3)
+bigImage.display()
+
